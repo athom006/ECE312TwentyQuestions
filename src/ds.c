@@ -18,7 +18,20 @@
 
 Node *create_question_node(const char *question) {
     // TODO: Implement this function
-    return NULL;
+
+    Node *newNode = (Node *)malloc(sizeof(Node));
+    if(newNode == NULL){
+        return NULL;
+    }
+    
+    newNode->text = strdup(question);    
+    
+    newNode->isQuestion = 1;
+    newNode->yes = NULL;
+    newNode->no = NULL;
+    
+    return newNode; 
+
 }
 
 /* TODO 2: Implement create_animal_node
@@ -27,7 +40,21 @@ Node *create_question_node(const char *question) {
  */
 Node *create_animal_node(const char *animal) {
     // TODO: Implement this function
-    return NULL;
+
+    Node *newNode = (Node *)malloc(sizeof(Node));
+    
+    if(newNode == NULL){
+        return NULL;
+    }
+
+    newNode->text = strdup(animal);    
+    
+    newNode->isQuestion = 0;
+    newNode->yes = NULL;
+    newNode->no = NULL;
+    
+    return newNode; 
+
 }
 
 /* TODO 3: Implement free_tree (recursive)
