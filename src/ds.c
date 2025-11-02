@@ -42,7 +42,7 @@ Node *create_animal_node(const char *animal) {
     // TODO: Implement this function
 
     Node *newNode = (Node *)malloc(sizeof(Node));
-    
+
     if(newNode == NULL){
         return NULL;
     }
@@ -68,6 +68,15 @@ Node *create_animal_node(const char *animal) {
  */
 void free_tree(Node *node) {
     // TODO: Implement this function
+
+    if(node == NULL){
+        return;
+    }
+
+    free_tree(node->yes);
+    free_tree(node->no);
+    free(node->text);
+    free(node);
 }
 
 /* TODO 4: Implement count_nodes (recursive)
@@ -76,7 +85,13 @@ void free_tree(Node *node) {
  */
 int count_nodes(Node *root) {
     // TODO: Implement this function
-    return 0;
+
+    if(root == NULL){
+        return 0;
+    }
+
+    return 1 + count_nodes(root->yes) + count_nodes(root->no);
+
 }
 
 /* ========== Frame Stack (for iterative tree traversal) ========== */
@@ -88,6 +103,11 @@ int count_nodes(Node *root) {
  */
 void fs_init(FrameStack *s) {
     // TODO: Implement this function
+/*
+    s->capacity = 16;
+    s->size = 0;
+    s->frames = (Frame *)malloc(s->capacity * sizeof(Frame));
+    */
 }
 
 /* TODO 6: Implement fs_push
@@ -98,6 +118,15 @@ void fs_init(FrameStack *s) {
  */
 void fs_push(FrameStack *s, Node *node, int answeredYes) {
     // TODO: Implement this function
+    
+    /*if(s->size >= s->capacity){
+        s->capacity *= 2;
+        s->frames = (Frame *)realloc(s->frames, s->capacity * sizeof(Frame));
+    }
+    s->frames[s->size].node = node;
+    s->frames[s->size].answeredYes = answeredYes;
+    s->size += 1;*/
+
 }
 
 /* TODO 7: Implement fs_pop
