@@ -162,14 +162,6 @@ int fs_empty(FrameStack *s) {
  */
 void fs_free(FrameStack *s) {
     // TODO: Implement this function
-    /*for(int i = 0; i < s->size; i++){
-        free(s->frames[i].node);
-    }
-
-    for(int i = s->size; i >= 0; i--){
-        free(s->frames[i]);
-    }*/
-
     free(s->frames);
     s->frames = NULL;
     s->size = 0;
@@ -184,6 +176,11 @@ void fs_free(FrameStack *s) {
  */
 void es_init(EditStack *s) {
     // TODO: Implement this function
+
+    s->capacity = 16;
+    s->size = 0;
+    s->edits = (Frame *)malloc(s->capacity * sizeof(Frame));
+
 }
 
 /* TODO 11: Implement es_push
@@ -193,6 +190,20 @@ void es_init(EditStack *s) {
  */
 void es_push(EditStack *s, Edit e) {
     // TODO: Implement this function
+
+    if(s->size >= s->capacity){
+        s->capacity *= 2;
+        s->edits = (Frame *)realloc(s->edits, s->capacity * sizeof(Frame));
+    }
+
+    s->edits[s->size].type = e.type;
+    s->edits[s->size].parent = e.parent;
+    s->edits[s->size].wasYesChild = e.wasYesChild;
+    s->edits[s->size].oldLeaf = e.oldLeaf;
+    s->edits[s->size].newQuestion = e.newQuestion;
+    s->edits[s->size].newLeaf = e.newLeaf;
+    s->size += 1;
+
 }
 
 /* TODO 12: Implement es_pop
@@ -201,7 +212,11 @@ void es_push(EditStack *s, Edit e) {
 Edit es_pop(EditStack *s) {
     Edit dummy = {0};
     // TODO: Implement this function
-    return dummy;
+    if(s->size == 0){
+        return dummy;
+    }
+    s->size -= 1;
+    return s->edits[s->size];
 }
 
 /* TODO 13: Implement es_empty
@@ -209,7 +224,10 @@ Edit es_pop(EditStack *s) {
  */
 int es_empty(EditStack *s) {
     // TODO: Implement this function
-    return 1;
+    if(s->size == 0){
+        return 1;
+    }
+    return 0;
 }
 
 /* TODO 14: Implement es_clear
@@ -218,6 +236,7 @@ int es_empty(EditStack *s) {
  */
 void es_clear(EditStack *s) {
     // TODO: Implement this function
+    s->size = 0;
 }
 
 void es_free(EditStack *s) {
