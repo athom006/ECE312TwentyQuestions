@@ -365,7 +365,25 @@ void q_free(Queue *q) {
  */
 char *canonicalize(const char *s) {
     // TODO: Implement this function
-    return NULL;
+
+    int len = strlen(s);
+    char *result = (char *)malloc(len + 1);
+
+    if(result == NULL){
+        return NULL;
+    }
+
+    int j = 0;
+    for(int i = 0; i < len; i++){
+        if(isalnum((unsigned char)s[i])){
+            result[j++] = tolower((unsigned char)s[i]);
+        } else if(isspace((unsigned char)s[i])){
+            result[j++] = '_';
+        }
+    }
+    result[j] = '\0';
+
+    return result;
 }
 
 /* TODO 21: Implement h_hash (djb2 algorithm)
@@ -376,7 +394,14 @@ char *canonicalize(const char *s) {
  */
 unsigned h_hash(const char *s) {
     // TODO: Implement this function
-    return 0;
+    unsigned hash = 5381;
+    int c;
+
+    while ((c = (unsigned char)*s++)) {
+        hash = ((hash << 5) + hash) + c; // hash * 33 + c
+    }
+    return hash;
+
 }
 
 /* TODO 22: Implement h_init
@@ -386,6 +411,9 @@ unsigned h_hash(const char *s) {
  */
 void h_init(Hash *h, int nbuckets) {
     // TODO: Implement this function
+    h->buckets = (Entry **)calloc(nbuckets, sizeof(Entry *));
+    h->nbuckets = nbuckets;
+    h->size = 0;
 }
 
 /* TODO 23: Implement h_put
@@ -408,7 +436,39 @@ void h_init(Hash *h, int nbuckets) {
  */
 int h_put(Hash *h, const char *key, int animalId) {
     // TODO: Implement this function
-    return 0;
+    unsigned idx = h_hash(key) % h->nbuckets;
+    Entry *current = h->buckets[idx];
+    while(current != NULL){
+        if(strcmp(current->key, key) == 0){
+            for(int i = 0; i < current->vals.count; i++){
+                if(current->vals.ids[i] == animalId){
+                    return 0;
+                }
+            }
+            if(current->vals.count >= current->vals.capacity){
+                current->vals.capacity *= 2;
+                current->vals.ids = (int *)realloc(current->vals.ids, current->vals.capacity * sizeof(int));
+            }
+            
+            current->vals.ids[current->vals.count] = animalId;
+            current->vals.count += 1;
+            return 1;
+        }
+
+        current = current->next;
+    }
+
+    Entry *newEntry = (Entry *)malloc(sizeof(Entry));
+    newEntry->key = strdup(key);
+    newEntry->vals.capacity = 4;
+    newEntry->vals.count = 1;
+    newEntry->vals.ids = (int *)malloc(newEntry->vals.capacity * sizeof(int));
+    newEntry->vals.ids[0] = animalId;
+    newEntry->next = h->buckets[idx];
+    h->buckets[idx] = newEntry;
+    h->size += 1;
+
+    return 1;
 }
 
 /* TODO 24: Implement h_contains
@@ -422,6 +482,20 @@ int h_put(Hash *h, const char *key, int animalId) {
  */
 int h_contains(const Hash *h, const char *key, int animalId) {
     // TODO: Implement this function
+    unsigned idx = h_hash(key) % h->nbuckets;
+    Entry *current = h->buckets[idx];
+    while(current != NULL){
+        if(strcmp(current->key, key) == 0){
+            for(int i = 0; i < current->vals.count; i++){
+                if(current->vals.ids[i] == animalId){
+                    return 1;
+                }
+            }
+        }
+
+        current = current->next;
+    }
+
     return 0;
 }
 
@@ -443,6 +517,16 @@ int h_contains(const Hash *h, const char *key, int animalId) {
 int *h_get_ids(const Hash *h, const char *key, int *outCount) {
     // TODO: Implement this function
     *outCount = 0;
+    unsigned idx = h_hash(key) % h->nbuckets;
+    Entry *current = h->buckets[idx];
+    while(current != NULL){
+        if(strcmp(current->key, key) == 0){
+            *outCount = current->vals.count;
+            return current->vals.ids;
+        }
+        current = current->next;
+    }
+    
     return NULL;
 }
 
@@ -461,4 +545,18 @@ int *h_get_ids(const Hash *h, const char *key, int *outCount) {
  */
 void h_free(Hash *h) {
     // TODO: Implement this function
+    for(int i = 0; i < h->nbuckets; i++){
+        Entry *current = h->buckets[i];
+        while(current != NULL){
+            Entry *temp = current;
+            current = current->next;
+            free(temp->key);
+            free(temp->vals.ids);
+            free(temp);
+        }
+    }
+    free(h->buckets);
+    h->buckets = NULL;
+    h->size = 0;
+
 }
