@@ -258,6 +258,9 @@ void free_edit_stack(EditStack *s) {
  */
 void q_init(Queue *q) {
     // TODO: Implement this function
+    q->front = NULL;
+    q->rear = NULL;
+    q->size = 0;
 }
 
 /* TODO 16: Implement q_enqueue
@@ -273,6 +276,18 @@ void q_init(Queue *q) {
  */
 void q_enqueue(Queue *q, Node *node, int id) {
     // TODO: Implement this function
+    QueueNode *newNode = (QueueNode *)malloc(sizeof(QueueNode));
+    newNode->treeNode = node;
+    newNode->id = id;
+    newNode->next = NULL;
+    if(q->rear == NULL){
+        q->front = newNode;
+        q->rear = newNode;
+    } else {
+        q->rear->next = newNode;
+        q->rear = newNode;
+    }
+    q->size += 1;
 }
 
 /* TODO 17: Implement q_dequeue
@@ -287,7 +302,21 @@ void q_enqueue(Queue *q, Node *node, int id) {
  */
 int q_dequeue(Queue *q, Node **node, int *id) {
     // TODO: Implement this function
-    return 0;
+    if(q->front == NULL){
+        return 0;
+    }
+
+    QueueNode *temp = q->front;
+    *node = temp->treeNode;
+    *id = temp->id;
+    q->front = q->front->next;
+    if(q->front == NULL){
+        q->rear = NULL;
+    }
+    free(temp);
+    q->size -= 1;
+
+    return 1;
 }
 
 /* TODO 18: Implement q_empty
@@ -295,7 +324,10 @@ int q_dequeue(Queue *q, Node **node, int *id) {
  */
 int q_empty(Queue *q) {
     // TODO: Implement this function
-    return 1;
+    if(q->size == 0){
+        return 1;
+    }
+    return 0;
 }
 
 /* TODO 19: Implement q_free
@@ -304,6 +336,11 @@ int q_empty(Queue *q) {
  */
 void q_free(Queue *q) {
     // TODO: Implement this function
+    Node *node;
+    int id;
+    while(!q_empty(q)){
+        q_dequeue(q, &node, &id);
+    }
 }
 
 /* ========== Hash Table ========== */
