@@ -49,6 +49,24 @@ int save_tree(const char *filename) {
     // TODO: Implement this function
     // This is complex - break it into smaller steps
     // You'll need to use the Queue functions you implemented
+    /*if(g_root == NULL){
+        return 0;
+    }
+    FILE *file = fopen(filename, "wb");
+    if(file == NULL){
+    }     return 0;
+    
+    Queue q;
+    q_init(&q);
+    NodeMapping *mappings = NULL;
+    int mappingCapacity = 16;
+    int mappingSize = 0;
+    mappings = (NodeMapping *)malloc(mappingCapacity * sizeof(NodeMapping));
+    if(mappings == NULL){
+        return 0;
+    }
+    */
+
     return 0;
 }
 

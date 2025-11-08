@@ -63,6 +63,87 @@ void play_game() {
     
     FrameStack stack;
     fs_init(&stack);
+    fs_push(&stack, g_root, -1);
+    Node *parent = NULL;
+    int parentAnswer = -1;
+
+    while(!fs_empty(&stack)){
+        
+        for (int i = 5; i < 12; i++) {
+            mvprintw(i, 2, "%-76s", ""); // Clear area before printing new content
+        }
+        refresh();
+
+        Frame current = fs_pop(&stack);
+        if(current.node->isQuestion==1){
+            char prompt[256];
+            snprintf(prompt, sizeof(prompt), "%s (y/n)?", current.node->text);
+            int answer = get_yes_no(5, 2, prompt);
+            parent = current.node;
+            parentAnswer = answer;
+            if(answer == 1){
+                fs_push(&stack, current.node->yes, answer);
+            } else {
+                fs_push(&stack, current.node->no, answer);
+            }
+        }
+        if(current.node->isQuestion==0){
+            char prompt[256];
+            snprintf(prompt, sizeof(prompt), "Is it a %s (y/n)?", current.node->text);
+            int correct = get_yes_no(5, 2, prompt);
+            if(correct == 1){
+                mvprintw(7, 2, "Yay! I guessed it right!");
+                refresh();
+                getch();
+                break;
+            } else {
+                // Learning phase
+                char *newAnimal = get_input(7, 2, "What animal were you thinking of?");
+                Node *newAnimalNode = create_animal_node(newAnimal);
+
+                char *newQuestion = get_input(9, 2, "Please provide a question that distinguishes your animal from mine:");
+                Node *newQuestionNode = create_question_node(newQuestion);
+                
+                int newAnswer = get_yes_no(11, 2, "For your animal, is the answer to your question 'yes' or 'no' (y/n)?");
+                // Create new nodes
+                
+
+                if(newAnswer == 1){
+                    newQuestionNode->yes = newAnimalNode;
+                    newQuestionNode->no = current.node;
+                } else {
+                    newQuestionNode->no = newAnimalNode;
+                    newQuestionNode->yes = current.node;
+                }
+            
+
+                if(parent == NULL){
+                    g_root = newQuestionNode;
+                } else if(parentAnswer == 1){
+                    parent->yes = newQuestionNode;
+                } else {
+                    parent->no = newQuestionNode;
+                }
+            
+                Edit edit;
+                edit.type = EDIT_INSERT_SPLIT;
+                edit.parent = parent;
+                edit.wasYesChild = parentAnswer;
+                edit.oldLeaf = current.node;
+                edit.newQuestion = newQuestionNode;
+                edit.newLeaf = newAnimalNode;
+                es_push(&g_undo, edit);
+                es_clear(&g_redo);
+                char *canonicalQ = canonicalize(newQuestion);
+                h_put(&g_index, canonicalQ, count_nodes(newAnimalNode)); // Using count_nodes as a dummy animal ID
+                free(canonicalQ);
+                break;
+            }
+        }
+
+        refresh();
+
+    }
     
     // TODO: Your implementation here
     
@@ -89,7 +170,22 @@ void play_game() {
  */
 int undo_last_edit() {
     // TODO: Implement this function
-    return 0;
+
+    if(es_empty(&g_undo)){
+        return 0;
+    }
+
+    Edit edit = es_pop(&g_undo);
+    if(edit.parent == NULL){
+        g_root = edit.oldLeaf;
+    } else if(edit.wasYesChild == 1){
+        edit.parent->yes = edit.oldLeaf;
+    } else {
+        edit.parent->no = edit.oldLeaf;
+    }
+    es_push(&g_redo, edit);
+
+    return 1;
 }
 
 /* TODO 33: Implement redo_last_edit
@@ -110,5 +206,20 @@ int undo_last_edit() {
  */
 int redo_last_edit() {
     // TODO: Implement this function
-    return 0;
+    if(es_empty(&g_redo)){
+        return 0;
+    }
+    
+    Edit edit = es_pop(&g_redo);
+
+    if(edit.parent == NULL){
+        g_root = edit.newQuestion;
+    } else if(edit.wasYesChild == 1){
+        edit.parent->yes = edit.newQuestion;
+    } else {
+        edit.parent->no = edit.newQuestion;
+    }
+    es_push(&g_undo, edit);
+
+    return 1;
 }
