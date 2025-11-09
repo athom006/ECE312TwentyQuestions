@@ -19,15 +19,15 @@
 Node *create_question_node(const char *question) {
     // TODO: Implement this function
 
-    Node *newNode = (Node *)malloc(sizeof(Node));
-    if(newNode == NULL){
+    Node *newNode = (Node *)malloc(sizeof(Node)); //allocate space for node 
+    if(newNode == NULL){ //check if allocation succeeded
         return NULL;
     }
     
-    newNode->text = strdup(question);    
+    newNode->text = strdup(question); //copy question string to heap   
     
-    newNode->isQuestion = 1;
-    newNode->yes = NULL;
+    newNode->isQuestion = 1; //set isQuestion to 1
+    newNode->yes = NULL; //initialize yes and no pointers
     newNode->no = NULL;
     
     return newNode; 
@@ -41,16 +41,16 @@ Node *create_question_node(const char *question) {
 Node *create_animal_node(const char *animal) {
     // TODO: Implement this function
 
-    Node *newNode = (Node *)malloc(sizeof(Node));
+    Node *newNode = (Node *)malloc(sizeof(Node)); //allocate space for node 
 
-    if(newNode == NULL){
+    if(newNode == NULL){ //check if allocation succeeded
         return NULL;
     }
 
-    newNode->text = strdup(animal);    
+    newNode->text = strdup(animal); //copy animal string to heap
     
-    newNode->isQuestion = 0;
-    newNode->yes = NULL;
+    newNode->isQuestion = 0;   //set isQuestion to 0
+    newNode->yes = NULL;    //initialize yes and no pointers
     newNode->no = NULL;
     
     return newNode; 
@@ -69,14 +69,14 @@ Node *create_animal_node(const char *animal) {
 void free_tree(Node *node) {
     // TODO: Implement this function
 
-    if(node == NULL){
+    if(node == NULL){ //base case
         return;
     }
 
-    free_tree(node->yes);
-    free_tree(node->no);
-    free(node->text);
-    free(node);
+    free_tree(node->yes); //free left subtree
+    free_tree(node->no);  //free right subtree
+    free(node->text);     //free text string
+    free(node);           //free node itself
 }
 
 /* TODO 4: Implement count_nodes (recursive)
@@ -86,11 +86,11 @@ void free_tree(Node *node) {
 int count_nodes(Node *root) {
     // TODO: Implement this function
 
-    if(root == NULL){
+    if(root == NULL){ //base case
         return 0;
     }
 
-    return 1 + count_nodes(root->yes) + count_nodes(root->no);
+    return 1 + count_nodes(root->yes) + count_nodes(root->no);   //return 1 + count of left subtree + count of right subtree
 
 }
 
@@ -104,9 +104,9 @@ int count_nodes(Node *root) {
 void fs_init(FrameStack *s) {
     // TODO: Implement this function
 
-    s->capacity = 16;
-    s->size = 0;
-    s->frames = (Frame *)malloc(s->capacity * sizeof(Frame));
+    s->capacity = 16; //set initial capacity
+    s->size = 0; //set initial size
+    s->frames = (Frame *)malloc(s->capacity * sizeof(Frame));  //allocate array of frames
     
 }
 
