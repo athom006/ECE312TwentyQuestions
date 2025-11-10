@@ -77,7 +77,7 @@ void play_game() {
         Frame current = fs_pop(&stack);
         if(current.node->isQuestion==1){
             char prompt[256];
-            snprintf(prompt, sizeof(prompt), "%s (y/n)?", current.node->text);
+            snprintf(prompt, sizeof(prompt), "%s (y/n)? ", current.node->text);
             int answer = get_yes_no(5, 2, prompt);
             parent = current.node;
             parentAnswer = answer;
@@ -89,7 +89,7 @@ void play_game() {
         }
         if(current.node->isQuestion==0){
             char prompt[256];
-            snprintf(prompt, sizeof(prompt), "Is it a %s (y/n)?", current.node->text);
+            snprintf(prompt, sizeof(prompt), "Is it a %s (y/n)? ", current.node->text);
             int correct = get_yes_no(5, 2, prompt);
             if(correct == 1){
                 mvprintw(7, 2, "Yay! I guessed it right!");
@@ -98,13 +98,13 @@ void play_game() {
                 break;
             } else {
                 // Learning phase
-                char *newAnimal = get_input(7, 2, "What animal were you thinking of?");
+                char *newAnimal = get_input(7, 2, "What animal were you thinking of? ");
                 Node *newAnimalNode = create_animal_node(newAnimal);
 
-                char *newQuestion = get_input(9, 2, "Please provide a question that distinguishes your animal from mine:");
+                char *newQuestion = get_input(9, 2, "Please provide a question that distinguishes your animal from mine: ");
                 Node *newQuestionNode = create_question_node(newQuestion);
                 
-                int newAnswer = get_yes_no(11, 2, "For your animal, is the answer to your question 'yes' or 'no' (y/n)?");
+                int newAnswer = get_yes_no(11, 2, "For your animal, is the answer to your question 'yes' or 'no' (y/n)? ");
                 // Create new nodes
                 
 
