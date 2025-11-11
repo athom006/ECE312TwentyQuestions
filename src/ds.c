@@ -437,20 +437,20 @@ void h_init(Hash *h, int nbuckets) {
 int h_put(Hash *h, const char *key, int animalId) {
     // TODO: Implement this function
     unsigned idx = h_hash(key) % h->nbuckets;
-    Entry *current = h->buckets[idx];
+    Entry *current = h->buckets[idx]; //get head of chain
     while(current != NULL){
-        if(strcmp(current->key, key) == 0){
-            for(int i = 0; i < current->vals.count; i++){
-                if(current->vals.ids[i] == animalId){
+        if(strcmp(current->key, key) == 0){ //found matching key
+            for(int i = 0; i < current->vals.count; i++){ //check if animalId already exists
+                if(current->vals.ids[i] == animalId){ 
                     return 0;
                 }
             }
-            if(current->vals.count >= current->vals.capacity){
+            if(current->vals.count >= current->vals.capacity){ //resize if needed
                 current->vals.capacity *= 2;
                 current->vals.ids = (int *)realloc(current->vals.ids, current->vals.capacity * sizeof(int));
             }
             
-            current->vals.ids[current->vals.count] = animalId;
+            current->vals.ids[current->vals.count] = animalId;  //add animalId to list
             current->vals.count += 1;
             return 1;
         }
@@ -458,7 +458,10 @@ int h_put(Hash *h, const char *key, int animalId) {
         current = current->next;
     }
 
-    Entry *newEntry = (Entry *)malloc(sizeof(Entry));
+    Entry *newEntry = (Entry *)malloc(sizeof(Entry)); //create new entry
+    if(newEntry == NULL){
+        return 0;
+    }
     newEntry->key = strdup(key);
     newEntry->vals.capacity = 4;
     newEntry->vals.count = 1;
@@ -485,8 +488,8 @@ int h_contains(const Hash *h, const char *key, int animalId) {
     unsigned idx = h_hash(key) % h->nbuckets;
     Entry *current = h->buckets[idx];
     while(current != NULL){
-        if(strcmp(current->key, key) == 0){
-            for(int i = 0; i < current->vals.count; i++){
+        if(strcmp(current->key, key) == 0){ //found matching key
+            for(int i = 0; i < current->vals.count; i++){ //search for animalId
                 if(current->vals.ids[i] == animalId){
                     return 1;
                 }
@@ -520,9 +523,9 @@ int *h_get_ids(const Hash *h, const char *key, int *outCount) {
     unsigned idx = h_hash(key) % h->nbuckets;
     Entry *current = h->buckets[idx];
     while(current != NULL){
-        if(strcmp(current->key, key) == 0){
-            *outCount = current->vals.count;
-            return current->vals.ids;
+        if(strcmp(current->key, key) == 0){ //found matching key
+            *outCount = current->vals.count; //set outCount
+            return current->vals.ids; //return pointer to ids array
         }
         current = current->next;
     }

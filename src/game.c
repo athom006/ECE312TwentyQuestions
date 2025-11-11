@@ -75,28 +75,29 @@ void play_game() {
         refresh();
 
         Frame current = fs_pop(&stack);
-        if(current.node->isQuestion==1){
+        if(current.node->isQuestion==1){ //question node
             char prompt[256];
             snprintf(prompt, sizeof(prompt), "%s (y/n)? ", current.node->text);
             int answer = get_yes_no(5, 2, prompt);
             parent = current.node;
             parentAnswer = answer;
-            if(answer == 1){
+            // Push next frame based on answer
+            if(answer == 1){ 
                 fs_push(&stack, current.node->yes, answer);
             } else {
                 fs_push(&stack, current.node->no, answer);
             }
         }
-        if(current.node->isQuestion==0){
+        if(current.node->isQuestion==0){//leaf node
             char prompt[256];
             snprintf(prompt, sizeof(prompt), "Is it a %s (y/n)? ", current.node->text);
             int correct = get_yes_no(5, 2, prompt);
-            if(correct == 1){
+            if(correct == 1){ //guessed correctly
                 mvprintw(7, 2, "Yay! I guessed it right!");
                 refresh();
                 getch();
                 break;
-            } else {
+            } else { //guessed wrong, enter learning phase
                 // Learning phase
                 char *newAnimal = get_input(7, 2, "What animal were you thinking of? ");
                 Node *newAnimalNode = create_animal_node(newAnimal);
@@ -116,7 +117,7 @@ void play_game() {
                     newQuestionNode->yes = current.node;
                 }
             
-
+                // Update parent pointer
                 if(parent == NULL){
                     g_root = newQuestionNode;
                 } else if(parentAnswer == 1){
@@ -125,7 +126,7 @@ void play_game() {
                     parent->no = newQuestionNode;
                 }
             
-                Edit edit;
+                Edit edit; // Create edit record
                 edit.type = EDIT_INSERT_SPLIT;
                 edit.parent = parent;
                 edit.wasYesChild = parentAnswer;
@@ -141,7 +142,7 @@ void play_game() {
             }
         }
 
-        refresh();
+        refresh(); // Update display after each interaction
 
     }
     
@@ -175,15 +176,15 @@ int undo_last_edit() {
         return 0;
     }
 
-    Edit edit = es_pop(&g_undo);
-    if(edit.parent == NULL){
+    Edit edit = es_pop(&g_undo); // Pop the last edit
+    if(edit.parent == NULL){ // If parent is NULL, we are undoing the root
         g_root = edit.oldLeaf;
-    } else if(edit.wasYesChild == 1){
+    } else if(edit.wasYesChild == 1){ // If it was a yes child, restore the yes pointer
         edit.parent->yes = edit.oldLeaf;
-    } else {
+    } else { // If it was a no child, restore the no pointer
         edit.parent->no = edit.oldLeaf;
     }
-    es_push(&g_redo, edit);
+    es_push(&g_redo, edit); // Push the edit to the redo stack
 
     return 1;
 }
@@ -212,14 +213,14 @@ int redo_last_edit() {
     
     Edit edit = es_pop(&g_redo);
 
-    if(edit.parent == NULL){
+    if(edit.parent == NULL){ // If parent is NULL, we are redoing the root
         g_root = edit.newQuestion;
-    } else if(edit.wasYesChild == 1){
+    } else if(edit.wasYesChild == 1){ // If it was a yes child, restore the yes pointer
         edit.parent->yes = edit.newQuestion;
-    } else {
+    } else { // If it was a no child, restore the no pointer
         edit.parent->no = edit.newQuestion;
     }
-    es_push(&g_undo, edit);
+    es_push(&g_undo, edit);// Push the edit back to the undo stack
 
     return 1;
 }

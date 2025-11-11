@@ -46,52 +46,70 @@ typedef struct {
  * 7. Clean up and return 1 on success
  */
 int save_tree(const char *filename) {
-    // TODO: Implement this function
-    // This is complex - break it into smaller steps
-    // You'll need to use the Queue functions you implemented
-
-    if(g_root == NULL){ //Return 0 if g_root is NULL
+    if (g_root == NULL) {
         return 0;
     }
 
-    FILE *file = fopen(filename, "wb"); //open file for writing binary
-
-    if(file == NULL){ //return if failed
-         return 0;
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL) {
+        return 0;
     }
 
-    Queue q; //Initialize queue and NodeMapping array
+    Queue q;
     q_init(&q);
+
     NodeMapping *mappings = NULL;
     int mappingCapacity = 16;
     int mappingSize = 0;
     mappings = (NodeMapping *)malloc(mappingCapacity * sizeof(NodeMapping));
-    if(mappings == NULL){
+    if (mappings == NULL) {
+        q_free(&q);
+        fclose(file);
         return 0;
     }
 
-    q_enqueue(&q, g_root, 0); //Use BFS to assign IDs to all nodes
+    // enqueue root with id 0 and register mapping[0] = {g_root, 0}
+    q_enqueue(&q, g_root, 0);
     mappings[0].node = g_root;
     mappings[0].id = 0;
-    mappingSize++;
-    while(!q_empty(&q)){
+    mappingSize = 1;
+
+    while (!q_empty(&q)) { // BFS traversal
         Node *node;
         int id;
         q_dequeue(&q, &node, &id);
-        if(node->yes != NULL){
-            if(mappingSize >= mappingCapacity){
-                mappingCapacity *= 2;
-                mappings = (NodeMapping *)realloc(mappings, mappingCapacity * sizeof(NodeMapping));
+        // Add yes child to mapping and queue
+        if (node->yes != NULL) {
+            if (mappingSize >= mappingCapacity) {
+                int newCap = mappingCapacity * 2;
+                NodeMapping *tmp = (NodeMapping *)realloc(mappings, newCap * sizeof(NodeMapping));
+                if (tmp == NULL) {
+                    free(mappings);
+                    q_free(&q);
+                    fclose(file);
+                    return 0;
+                }
+                mappings = tmp;
+                mappingCapacity = newCap;
             }
             mappings[mappingSize].node = node->yes;
             mappings[mappingSize].id = mappingSize;
             q_enqueue(&q, node->yes, mappingSize);
             mappingSize++;
         }
-        if(node->no != NULL){
-            if(mappingSize >= mappingCapacity){
-                mappingCapacity *= 2;
-                mappings = (NodeMapping *)realloc(mappings, mappingCapacity * sizeof(NodeMapping));
+        // Add no child to mapping and queue
+        if (node->no != NULL) { 
+            if (mappingSize >= mappingCapacity) {
+                int newCap = mappingCapacity * 2;
+                NodeMapping *tmp = (NodeMapping *)realloc(mappings, newCap * sizeof(NodeMapping));
+                if (tmp == NULL) {
+                    free(mappings);
+                    q_free(&q);
+                    fclose(file);
+                    return 0;
+                }
+                mappings = tmp;
+                mappingCapacity = newCap;
             }
             mappings[mappingSize].node = node->no;
             mappings[mappingSize].id = mappingSize;
@@ -99,40 +117,67 @@ int save_tree(const char *filename) {
             mappingSize++;
         }
     }
-    // Write header
+
+    // Write header (magic, version, nodeCount)
     uint32_t magic = MAGIC;
     uint32_t version = VERSION;
-    uint32_t nodeCount = mappingSize;
-    fwrite(&magic, sizeof(uint32_t), 1, file);
-    fwrite(&version, sizeof(uint32_t), 1, file);
-    fwrite(&nodeCount, sizeof(uint32_t), 1, file);
-    // Write nodes
-    for(int i = 0; i < mappingSize; i++){
+    uint32_t nodeCount = (uint32_t)mappingSize;
+    if (fwrite(&magic, sizeof(uint32_t), 1, file) != 1 ||
+        fwrite(&version, sizeof(uint32_t), 1, file) != 1 ||
+        fwrite(&nodeCount, sizeof(uint32_t), 1, file) != 1) {
+        free(mappings);
+        q_free(&q);
+        fclose(file);
+        return 0;
+    }
+
+    // Write nodes in mapping order 
+    for (int i = 0; i < mappingSize; i++) {
         Node *node = mappings[i].node;
-        uint8_t isQuestion = node->isQuestion;
-        uint32_t textLen = strlen(node->text);
-        fwrite(&isQuestion, sizeof(uint8_t), 1, file);
-        fwrite(&textLen, sizeof(uint32_t), 1, file);
-        fwrite(node->text, sizeof(char), textLen, file);
-        int32_t yesId = -1;
-        int32_t noId = -1;
-        for(int j = 0; j < mappingSize; j++){
-            if(mappings[j].node == node->yes){
-                yesId = mappings[j].id;
-            }
-            if(mappings[j].node == node->no){
-                noId = mappings[j].id;
+        uint8_t isQuestion = (uint8_t)node->isQuestion;
+        uint32_t textLen = (uint32_t)strlen(node->text);
+
+        if (fwrite(&isQuestion, sizeof(uint8_t), 1, file) != 1 ||
+            fwrite(&textLen, sizeof(uint32_t), 1, file) != 1) {
+            free(mappings);
+            q_free(&q);
+            fclose(file);
+            return 0;
+        }
+
+        if (textLen > 0) {
+            if (fwrite(node->text, sizeof(char), textLen, file) != textLen) {
+                free(mappings);
+                q_free(&q);
+                fclose(file);
+                return 0;
             }
         }
-        fwrite(&yesId, sizeof(int32_t), 1, file);
-        fwrite(&noId, sizeof(int32_t), 1, file);
+
+        int32_t yesId = -1;
+        int32_t noId = -1;
+
+        // find child ids in mappings
+        for (int j = 0; j < mappingSize; j++) {
+            if (mappings[j].node == node->yes) yesId = mappings[j].id;
+            if (mappings[j].node == node->no)  noId  = mappings[j].id;
+        }
+
+        if (fwrite(&yesId, sizeof(int32_t), 1, file) != 1 ||
+            fwrite(&noId, sizeof(int32_t), 1, file) != 1) {
+            free(mappings);
+            q_free(&q);
+            fclose(file);
+            return 0;
+        }
     }
-    free(mappings); //Clean up
+
+    free(mappings);
     q_free(&q);
     fclose(file);
     return 1;
 }
-    
+
 
 
 /* TODO 28: Implement load_tree
@@ -166,35 +211,33 @@ int save_tree(const char *filename) {
  * - In load_error: free all allocated memory and return 0
  */
 int load_tree(const char *filename) {
-    // TODO: Implement this function
-    // This is the most complex function in the lab
-    // Take it step by step and test incrementally
-    if(filename == NULL){
+    if (filename == NULL) {
         return 0;
     }
+
     FILE *file = fopen(filename, "rb");
-    if(file == NULL){
-    return 0;
+    if (file == NULL) {
+        return 0;
     }
 
-    uint32_t magic, version, count;
-    if(fread(&magic, sizeof(uint32_t), 1, file) != 1 || magic != MAGIC){
+    uint32_t magic = 0, version = 0, count = 0;
+    if (fread(&magic, sizeof(uint32_t), 1, file) != 1 || magic != MAGIC) {
         fclose(file);
-        return 0;   
+        return 0;
     }
-    if(fread(&version, sizeof(uint32_t), 1, file) != 1 || version != VERSION){
+    if (fread(&version, sizeof(uint32_t), 1, file) != 1 || version != VERSION) {
         fclose(file);
-        return 0;   
+        return 0;
     }
-    if(fread(&count, sizeof(uint32_t), 1, file) != 1 || count == 0){
+    if (fread(&count, sizeof(uint32_t), 1, file) != 1 || count == 0) {
         fclose(file);
         return 0;
     }
 
-    Node **nodes = (Node **)calloc(count, sizeof(Node*));
+    Node **nodes = (Node **)calloc(count, sizeof(Node *));
     int32_t *yesIds = (int32_t *)calloc(count, sizeof(int32_t));
-    int32_t *noIds = (int32_t *)calloc(count, sizeof(int32_t));
-    if(nodes == NULL || yesIds == NULL || noIds == NULL){
+    int32_t *noIds  = (int32_t *)calloc(count, sizeof(int32_t));
+    if (nodes == NULL || yesIds == NULL || noIds == NULL) {
         free(nodes);
         free(yesIds);
         free(noIds);
@@ -202,95 +245,96 @@ int load_tree(const char *filename) {
         return 0;
     }
 
-    for(uint32_t i = 0; i < count; i++){
-        uint8_t isQuestion;
-        uint32_t textLen;
-    
-        if(fread(&isQuestion, sizeof(uint8_t), 1, file) != 1){
-            free(nodes);
-            free(yesIds);
-            free(noIds);
-            fclose(file);
-            return 0;
+    // Read node records into temporary arrays
+    for (uint32_t i = 0; i < count; i++) {
+        uint8_t isQuestion = 0;
+        uint32_t textLen = 0;
+
+        // Validate reads and values
+        if (fread(&isQuestion, sizeof(uint8_t), 1, file) != 1) {
+            goto load_error;
         }
-        if(fread(&textLen, sizeof(uint32_t), 1, file) != 1 || textLen == 0 || textLen >= 10000){
-            free(nodes);
-            free(yesIds);
-            free(noIds);
-            fclose(file);
-            return 0;
+        if (fread(&textLen, sizeof(uint32_t), 1, file) != 1) {
+            goto load_error;
         }
+        if (textLen == 0 || textLen >= 10000) {
+            goto load_error;
+        }
+
         char *text = (char *)malloc(textLen + 1);
-        if(text == NULL){
-            free(nodes);
-            free(yesIds);
-            free(noIds);
-            fclose(file);
-            return 0;
+        if (text == NULL) {
+            goto load_error;
         }
-        if(fread(text, sizeof(char), textLen, file) != textLen){
+
+        if (fread(text, sizeof(char), textLen, file) != textLen) {
             free(text);
-            free(nodes);
-            free(yesIds);
-            free(noIds);
-            fclose(file);
-            return 0;
+            goto load_error;
         }
-        text[textLen] = '\0'; // Null-terminate the string
-        if(fread(&yesIds[i], sizeof(int32_t), 1, file) != 1 || yesIds[i] < -1 || yesIds[i] >= (int32_t)count){
+        text[textLen] = '\0';
+
+        if (fread(&yesIds[i], sizeof(int32_t), 1, file) != 1) {
             free(text);
-            free(nodes);
-            free(yesIds);
-            free(noIds);
-            fclose(file);
-            return 0;
+            goto load_error;
         }
-        if(fread(&noIds[i], sizeof(int32_t), 1, file) != 1 || noIds[i] < -1 || noIds[i] >= (int32_t)count){
+        if (yesIds[i] < -1 || yesIds[i] >= (int32_t)count) {
             free(text);
-            free(nodes);
-            free(yesIds);
-            free(noIds);
-            fclose(file);
-            return 0;
+            goto load_error;
+        }
+
+        if (fread(&noIds[i], sizeof(int32_t), 1, file) != 1) {
+            free(text);
+            goto load_error;
+        }
+        if (noIds[i] < -1 || noIds[i] >= (int32_t)count) {
+            free(text);
+            goto load_error;
         }
 
         nodes[i] = (Node *)malloc(sizeof(Node));
-        if(nodes[i] == NULL){
+        if (nodes[i] == NULL) {
             free(text);
-            free(nodes);
-            free(yesIds);
-            free(noIds);
-            fclose(file);
-            return 0;
+            goto load_error;
         }
 
-        nodes[i]->isQuestion = isQuestion;
+        nodes[i]->isQuestion = (int)isQuestion;
         nodes[i]->text = text;
         nodes[i]->yes = NULL;
-        nodes[i]->no = NULL;
+        nodes[i]->no  = NULL;
     }
 
-
-    for(uint32_t i = 0; i < count; i++){
-        if(yesIds[i] >= 0){
-            nodes[i]->yes = nodes[yesIds[i]];
-        }
-        if(noIds[i] >= 0){
-            nodes[i]->no = nodes[noIds[i]];
-        }
+    // Link children 
+    for (uint32_t i = 0; i < count; i++) {
+        if (yesIds[i] >= 0) nodes[i]->yes = nodes[(uint32_t)yesIds[i]];
+        if (noIds[i]  >= 0) nodes[i]->no  = nodes[(uint32_t)noIds[i]];
     }
 
-    if(g_root != NULL){
+    // Free old tree if present and install new root 
+    if (g_root != NULL) {
         free_tree(g_root);
     }
     g_root = nodes[0];
 
+    // nodes array just held pointers used for linking 
     free(yesIds);
     free(noIds);
     free(nodes);
     fclose(file);
-    return 1;  
+    return 1;
 
-    
-
+load_error:
+    // Free whatever nodes/texts were allocated so far 
+    if (nodes != NULL) {
+        for (uint32_t k = 0; k < count; k++) {
+            if (nodes[k] != NULL) {
+                if (nodes[k]->text != NULL) free(nodes[k]->text);
+                free(nodes[k]);
+                nodes[k] = NULL;
+            }
+        }
+    }
+    free(nodes);
+    free(yesIds);
+    free(noIds);
+    fclose(file);
+    return 0;
 }

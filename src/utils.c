@@ -28,37 +28,38 @@ extern Node *g_root;
  * 5. Free queue and return valid
  */
 int check_integrity() {
-    // TODO: Implement this function
-    // Use the Queue functions you implemented
+    if (g_root == NULL) 
+        return 1; // Empty tree is valid
 
-    if (g_root == NULL) return 1; // Empty tree is valid
+    Queue q;
+    q_init(&q);             // Initialize queue
+    q_enqueue(&q, g_root, 0);
 
-    Queue *q = (Queue*)malloc(sizeof(Queue));
-    q_init(q);
-    q_enqueue(q, g_root, 0);
     int valid = 1;
 
-    while (!q_empty(q)) {
+    while (!q_empty(&q)) { // BFS traversal
         Node *current; 
         int id;
-        q_dequeue(q, &current, &id);
+        q_dequeue(&q, &current, &id);
+
         if (current->isQuestion) {
-            if (current->yes == NULL || current->no == NULL) { // Question node must have both children
+            // Question node must have both children
+            if (current->yes == NULL || current->no == NULL) {
                 valid = 0;
                 break;
             }
-            q_enqueue(q, current->yes, 0);
-            q_enqueue(q, current->no, 0);
+            q_enqueue(&q, current->yes, 0);
+            q_enqueue(&q, current->no, 0);
         } else {
-            if (current->yes != NULL || current->no != NULL) { // Leaf node must not have children
+            // Leaf node must NOT have children
+            if (current->yes != NULL || current->no != NULL) {
                 valid = 0;
                 break;
             }
         }
-
     }
 
-    q_free(q);
+    q_free(&q);  // Frees internal queue nodes 
 
     return valid;
 }
